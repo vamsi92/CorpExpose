@@ -106,11 +106,18 @@ class _HomeScreenState extends State<HomeScreen> {
       ratedBy.add(widget.user.uid);
 
       // Calculate the new average rating
-      final newRating = (currentRating * (ratedBy.length - 1) + rating) / ratedBy.length;
+      final totalRaters = ratedBy.length;
+      final newRating = (currentRating * (totalRaters - 1) + rating) / totalRaters;
 
       _databaseRef.child(postKey).update({
         'ratings': newRating,
         'ratedBy': ratedBy,
+      });
+
+      // Update the UI
+      setState(() {
+        filteredPosts[index]['ratings'] = newRating;
+        filteredPosts[index]['ratedBy'] = ratedBy;
       });
     }
   }
@@ -131,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20.0),
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                  boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8)], // Softer shadow
                 ),
                 child: TextField(
                   onChanged: _onSearchChanged,
@@ -140,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     hintText: 'Search...',
                     hintStyle: TextStyle(color: Colors.grey[600]),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+                    contentPadding: EdgeInsets.symmetric(vertical: 14.0, horizontal: 16.0),
                   ),
                   style: const TextStyle(color: Colors.black),
                 ),
@@ -185,7 +192,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ? Colors.green
                                       : Colors.grey,
                                 ),
-                                onPressed: () => _onLikePressed(index),
+                                onPressed: filteredPosts[index]['likedBy'].contains(widget.user.uid) ||
+                                    filteredPosts[index]['dislikedBy'].contains(widget.user.uid)
+                                    ? null
+                                    : () => _onLikePressed(index),
                               ),
                               Text('${filteredPosts[index]['likes']}'),
                               IconButton(
@@ -195,7 +205,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ? Colors.red
                                       : Colors.grey,
                                 ),
-                                onPressed: () => _onDislikePressed(index),
+                                onPressed: filteredPosts[index]['dislikedBy'].contains(widget.user.uid) ||
+                                    filteredPosts[index]['likedBy'].contains(widget.user.uid)
+                                    ? null
+                                    : () => _onDislikePressed(index),
                               ),
                               Text('${filteredPosts[index]['dislikes']}'),
                             ],
@@ -221,17 +234,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                     const SizedBox(width: 8),
                                     // Display average rating
                                     Row(
-                                      children: [
-                                        // Rating stars
-                                        Row(
-                                          children: List.generate(5, (ratingIndex) {
-                                            return Icon(
-                                              Icons.star,
-                                              color: (ratingIndex < filteredPosts[index]['ratings']) ? Colors.yellow : Colors.grey,
-                                            );
-                                          }),
-                                        ),
-                                      ],
+                                      children: List.generate(5, (ratingIndex) {
+                                        return GestureDetector(
+                                          onTap: () => _onRatePressed(index, ratingIndex + 1),  // User can tap on stars
+                                          child: Icon(
+                                            Icons.star,
+                                            color: (ratingIndex < filteredPosts[index]['ratings'])
+                                                ? Colors.yellow
+                                                : Colors.grey,
+                                          ),
+                                        );
+                                      }),
                                     ),
                                   ],
                                 ),
