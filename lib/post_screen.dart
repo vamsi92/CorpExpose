@@ -15,7 +15,7 @@ class _PostScreenState extends State<PostScreen> {
   final _formKey = GlobalKey<FormState>();
   String _companyName = "";
   String _postContent = "";
-  final int _maxChars = 250;
+  final int _maxChars = 500;
   final DatabaseReference _databaseRef = FirebaseDatabase.instance.ref("posts");
 
   void _submitPost() async {
