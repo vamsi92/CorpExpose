@@ -36,6 +36,8 @@ class _HomeScreenState extends State<HomeScreen> {
             'content': value['content'] ?? 'No Content',
             'likes': value['likes'] ?? 0,
             'dislikes': value['dislikes'] ?? 0,
+            'ratings': value['ratings'] ?? 0.0,
+            'ratedBy': List<String>.from(value['ratedBy'] ?? []),
             'likedBy': List<String>.from(value['likedBy'] ?? []),
             'dislikedBy': List<String>.from(value['dislikedBy'] ?? []),
             'key': key,
@@ -45,11 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           posts = loadedPosts;
           filteredPosts = loadedPosts;
-        });
-      } else {
-        setState(() {
-          posts = [];
-          filteredPosts = [];
         });
       }
     });
@@ -72,12 +69,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final likedBy = filteredPosts[index]['likedBy'];
     final dislikedBy = filteredPosts[index]['dislikedBy'];
 
-    // Check if the user has already liked or disliked this post
     if (!likedBy.contains(widget.user.uid) && !dislikedBy.contains(widget.user.uid)) {
-      likedBy.add(widget.user.uid); // Add the user's ID to the likedBy list
+      likedBy.add(widget.user.uid);
+
       _databaseRef.child(postKey).update({
         'likes': currentLikes + 1,
         'likedBy': likedBy,
+        'dislikedBy': dislikedBy,
       });
     }
   }
@@ -88,12 +86,31 @@ class _HomeScreenState extends State<HomeScreen> {
     final likedBy = filteredPosts[index]['likedBy'];
     final dislikedBy = filteredPosts[index]['dislikedBy'];
 
-    // Check if the user has already disliked or liked this post
     if (!dislikedBy.contains(widget.user.uid) && !likedBy.contains(widget.user.uid)) {
-      dislikedBy.add(widget.user.uid); // Add the user's ID to the dislikedBy list
+      dislikedBy.add(widget.user.uid);
+
       _databaseRef.child(postKey).update({
         'dislikes': currentDislikes + 1,
         'dislikedBy': dislikedBy,
+        'likedBy': likedBy,
+      });
+    }
+  }
+
+  void _onRatePressed(int index, double rating) {
+    final postKey = filteredPosts[index]['key'];
+    final ratedBy = filteredPosts[index]['ratedBy'];
+    final currentRating = filteredPosts[index]['ratings'];
+
+    if (!ratedBy.contains(widget.user.uid)) {
+      ratedBy.add(widget.user.uid);
+
+      // Calculate the new average rating
+      final newRating = (currentRating * (ratedBy.length - 1) + rating) / ratedBy.length;
+
+      _databaseRef.child(postKey).update({
+        'ratings': newRating,
+        'ratedBy': ratedBy,
       });
     }
   }
@@ -154,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: 120), // Ensuring proper size
+                      constraints: BoxConstraints(minHeight: 120),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -183,11 +200,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               Text('${filteredPosts[index]['dislikes']}'),
                             ],
                           ),
-                          // Vertical border as a divider
                           Container(
-                            width: 1, // Width of the divider
-                            color: Colors.grey, // Color of the divider
-                            height: 120, // Height of the divider
+                            width: 1,
+                            color: Colors.grey,
+                            height: 120,
                             margin: const EdgeInsets.symmetric(horizontal: 8.0),
                           ),
                           // Post content
@@ -195,9 +211,29 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  filteredPosts[index]['companyName'],
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                // Company name and rating side by side
+                                Row(
+                                  children: [
+                                    Text(
+                                      filteredPosts[index]['companyName'],
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    // Display average rating
+                                    Row(
+                                      children: [
+                                        // Rating stars
+                                        Row(
+                                          children: List.generate(5, (ratingIndex) {
+                                            return Icon(
+                                              Icons.star,
+                                              color: (ratingIndex < filteredPosts[index]['ratings']) ? Colors.yellow : Colors.grey,
+                                            );
+                                          }),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
