@@ -1,6 +1,7 @@
-import 'package:corp_expose/post.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'post_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final User user;
@@ -12,128 +13,174 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<Post> posts = [
-    Post("Company A", "Alice", "Why I would reject Company A due to poor work culture.", 5),
-    Post("Company B", "Bob", "Issues with Company B related to management.", 3),
-    Post("Company C", "Charlie", "Concerns about Company C's lack of transparency.", 8),
-    Post("Company D", "Diana", "Negative experiences with Company D's customer service.", 2),
-    Post("Company E", "Rob", "Negative experiences with Company D's customer service.", 2),
-    Post("Company F", "Kir", "Negative experiences with Company D's customer service.", 2),
-    Post("Company G", "Rabo", "Negative experiences with Company D's customer service.", 2),
-    Post("Company H", "Jonny", "Negative experiences with Company D's customer service.", 2),
-    Post("Company I", "Melane", "Negative experiences with Company D's customer service.", 2),
-    Post("Company J", "Krish", "Negative experiences with Company D's customer service.", 2),
-    Post("Company K", "Chris", "Negative experiences with Company D's customer service.", 2),
-  ];
-
-  List<Post> filteredPosts = [];
-  String searchQuery = "";
+  final DatabaseReference _databaseRef = FirebaseDatabase.instance.ref("posts");
+  List<Map<String, dynamic>> posts = [];
+  List<Map<String, dynamic>> filteredPosts = [];
+  String _searchQuery = "";
 
   @override
   void initState() {
     super.initState();
-    filteredPosts = posts;
+    _fetchPosts();
+  }
+
+  void _fetchPosts() {
+    _databaseRef.onValue.listen((event) {
+      if (event.snapshot.value != null) {
+        final Map<dynamic, dynamic> data = event.snapshot.value as Map<dynamic, dynamic>;
+
+        if (data.isEmpty) {
+          setState(() {
+            posts = [];
+            filteredPosts = [];
+          });
+          return;
+        }
+
+        final List<Map<String, dynamic>> loadedPosts = [];
+        data.forEach((key, value) {
+          loadedPosts.add({
+            'companyName': value['companyName'] ?? 'Unknown Company',
+            'postedBy': value['postedBy'] ?? 'Anonymous',
+            'content': value['content'] ?? 'No Content',
+            'likes': value['likes'] ?? 0,
+            'likedBy': List<String>.from(value['likedBy'] ?? []), // List of user IDs who liked this post
+            'key': key,
+          });
+        });
+
+        setState(() {
+          posts = loadedPosts;
+          filteredPosts = loadedPosts;
+        });
+      } else {
+        setState(() {
+          posts = [];
+          filteredPosts = [];
+        });
+      }
+    });
   }
 
   void _onSearchChanged(String query) {
     setState(() {
-      searchQuery = query.toLowerCase();
+      _searchQuery = query;
       filteredPosts = posts.where((post) {
-        return post.companyName.toLowerCase().contains(searchQuery) ||
-            post.content.toLowerCase().contains(searchQuery);
+        final companyName = post['companyName'].toLowerCase();
+        final content = post['content'].toLowerCase();
+        return companyName.contains(query.toLowerCase()) || content.contains(query.toLowerCase());
       }).toList();
     });
   }
 
   void _onLikePressed(int index) {
-    setState(() {
-      filteredPosts[index] = Post(
-        filteredPosts[index].companyName,
-        filteredPosts[index].postedBy,
-        filteredPosts[index].content,
-        filteredPosts[index].likes + 1,
-      );
-    });
-  }
+    final postKey = filteredPosts[index]['key'];
+    final currentLikes = filteredPosts[index]['likes'];
+    final likedBy = filteredPosts[index]['likedBy'];
 
-  void _signOut() async {
-    await FirebaseAuth.instance.signOut();
-    Navigator.pushReplacementNamed(context, '/auth'); // Redirect to login screen
+    // Check if the user has already liked this post
+    if (!likedBy.contains(widget.user.uid)) {
+      likedBy.add(widget.user.uid); // Add the user's ID to the likedBy list
+      _databaseRef.child(postKey).update({
+        'likes': currentLikes + 1,
+        'likedBy': likedBy, // Update the likedBy list in the database
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           children: [
-            TextField(
-              decoration: const InputDecoration(
-                hintText: 'Search by company name or keywords...',
-                border: InputBorder.none,
-                hintStyle: TextStyle(color: Colors.white60),
-                icon: Icon(Icons.search, color: Colors.white),
+            Image.asset(
+              'assets/CX.png',
+              height: 48,
+            ),
+            const SizedBox(width: 16), // Space between title and search bar
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white, // Search bar background color
+                  borderRadius: BorderRadius.circular(20.0), // Rounded corners
+                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)], // Soft shadow effect
+                ),
+                child: TextField(
+                  onChanged: _onSearchChanged,
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.search, color: Colors.grey), // Search icon
+                    hintText: 'Search...',
+                    hintStyle: TextStyle(color: Colors.grey[600]), // Hint text style
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
+                  ),
+                  style: const TextStyle(color: Colors.black), // Text color in the search bar
+                ),
               ),
-              onChanged: _onSearchChanged,
-              style: const TextStyle(color: Colors.white),
             ),
           ],
         ),
-        backgroundColor: Colors.blue,
-      ),
-      body: ListView.builder(
-        itemCount: filteredPosts.length,
-        itemBuilder: (context, index) {
-          return Card(
-            margin: const EdgeInsets.all(8.0),
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    filteredPosts[index].companyName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Posted by: ${filteredPosts[index].postedBy}",
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(filteredPosts[index].content),
-                  const Divider(thickness: 1),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.favorite, color: Colors.red),
-                        onPressed: () => _onLikePressed(index),
-                      ),
-                      Text('${filteredPosts[index].likes} Likes'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          const BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Post'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.logout),
-            label: 'Logout (${widget.user.displayName})', // Show the logged-in username here
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await FirebaseAuth.instance.signOut();
+              Navigator.pushReplacementNamed(context, '/auth');
+            },
           ),
         ],
-        currentIndex: 0,
-        onTap: (index) {
-          if (index == 2) {
-            _signOut(); // Handle sign-out on the logout button
-          }
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: filteredPosts.isEmpty
+                ? const Center(child: Text('No posts available.'))
+                : ListView.builder(
+              itemCount: filteredPosts.length,
+              itemBuilder: (context, index) {
+                return Card(
+                  margin: const EdgeInsets.all(8.0),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          filteredPosts[index]['companyName'],
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Posted by: ${filteredPosts[index]['postedBy']}",
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(filteredPosts[index]['content']),
+                        const Divider(thickness: 1),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.favorite, color: Colors.red),
+                              onPressed: () => _onLikePressed(index),
+                            ),
+                            Text('${filteredPosts[index]['likes']} Likes'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        child: const Icon(Icons.add),
+        onPressed: () {
+          Navigator.pushNamed(context, '/post');
         },
       ),
     );

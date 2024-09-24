@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "461542063805",
+    "firebase_url": "https://corpexpose-b720d-default-rtdb.firebaseio.com",
     "project_id": "corpexpose-b720d",
     "storage_bucket": "corpexpose-b720d.appspot.com"
   },
@@ -29,6 +30,13 @@
             {
               "client_id": "461542063805-4hu19nq3edem4r6dbmi6p5k9gj6r6bc7.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "461542063805-2ldavrqi41ohftg16sqg1ab73h5cdu75.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.nologicapps.corpExpose"
+              }
             }
           ]
         }

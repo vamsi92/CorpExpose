@@ -52,6 +52,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '461542063805',
     projectId: 'corpexpose-b720d',
     authDomain: 'corpexpose-b720d.firebaseapp.com',
+    databaseURL: 'https://corpexpose-b720d-default-rtdb.firebaseio.com',
     storageBucket: 'corpexpose-b720d.appspot.com',
     measurementId: 'G-6L0LLW3XCQ',
   );
@@ -61,6 +62,7 @@ class DefaultFirebaseOptions {
     appId: '1:461542063805:android:7c2e1a177bb8886f1b81d4',
     messagingSenderId: '461542063805',
     projectId: 'corpexpose-b720d',
+    databaseURL: 'https://corpexpose-b720d-default-rtdb.firebaseio.com',
     storageBucket: 'corpexpose-b720d.appspot.com',
   );
 
@@ -69,8 +71,10 @@ class DefaultFirebaseOptions {
     appId: '1:461542063805:ios:e37d75433f0231191b81d4',
     messagingSenderId: '461542063805',
     projectId: 'corpexpose-b720d',
+    databaseURL: 'https://corpexpose-b720d-default-rtdb.firebaseio.com',
     storageBucket: 'corpexpose-b720d.appspot.com',
     iosClientId: '461542063805-2ldavrqi41ohftg16sqg1ab73h5cdu75.apps.googleusercontent.com',
     iosBundleId: 'com.nologicapps.corpExpose',
   );
+
 }
