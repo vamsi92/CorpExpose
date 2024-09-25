@@ -165,7 +165,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: posts.isEmpty
+    ? const Center(child: CircularProgressIndicator())  // Show loading while fetching posts
+        :Column(
         children: [
           Expanded(
             child: filteredPosts.isEmpty
