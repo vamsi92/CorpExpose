@@ -126,6 +126,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.white, // Change to a white background for a clean UI
+        elevation: 2, // Slight shadow for the app bar
         title: Row(
           children: [
             Image.asset(
@@ -136,20 +138,27 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20.0),
-                  boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8)], // Softer shadow
+                  color: Colors.grey[200], // Light background for the search box
+                  borderRadius: BorderRadius.circular(30.0), // Rounded corners
                 ),
                 child: TextField(
                   onChanged: _onSearchChanged,
+                  cursorColor: Colors.black, // Black cursor
                   decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.search, color: Colors.grey),
-                    hintText: 'Search...',
+                    prefixIcon: Padding(
+                      padding: const EdgeInsets.all(8.0), // Padding for larger icon
+                      child: Icon(
+                        Icons.search,
+                        color: Colors.grey[700],
+                        size: 28, // Larger icon for better visibility
+                      ),
+                    ),
+                    hintText: 'Search companies or posts...',
                     hintStyle: TextStyle(color: Colors.grey[600]),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 14.0, horizontal: 16.0),
+                    contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 24.0), // Padding for better touch experience
                   ),
-                  style: const TextStyle(color: Colors.black),
+                  style: const TextStyle(color: Colors.black, fontSize: 16), // Larger, clearer font
                 ),
               ),
             ),
@@ -157,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Colors.black),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               Navigator.pushReplacementNamed(context, '/auth');
@@ -166,8 +175,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: posts.isEmpty
-    ? const Center(child: CircularProgressIndicator())  // Show loading while fetching posts
-        :Column(
+          ? const Center(child: CircularProgressIndicator()) // Show loading while fetching posts
+          : Column(
         children: [
           Expanded(
             child: filteredPosts.isEmpty
@@ -238,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Row(
                                       children: List.generate(5, (ratingIndex) {
                                         return GestureDetector(
-                                          onTap: () => _onRatePressed(index, ratingIndex + 1),  // User can tap on stars
+                                          onTap: () => _onRatePressed(index, ratingIndex + 1), // User can tap on stars
                                           child: Icon(
                                             Icons.star,
                                             color: (ratingIndex < filteredPosts[index]['ratings'])
