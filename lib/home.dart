@@ -78,6 +78,9 @@ class _HomeScreenState extends State<HomeScreen> {
         'dislikedBy': dislikedBy,
       });
     }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('You liked ${filteredPosts[index]['companyName']}')),
+    );
   }
 
   void _onDislikePressed(int index) {
@@ -95,6 +98,9 @@ class _HomeScreenState extends State<HomeScreen> {
         'likedBy': likedBy,
       });
     }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('You disliked ${filteredPosts[index]['companyName']}')),
+    );
   }
 
   void _onRatePressed(int index, double rating) {
