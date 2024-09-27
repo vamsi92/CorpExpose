@@ -17,18 +17,53 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> filteredPosts = [];
   String _searchQuery = "";
 
+  final ScrollController _scrollController = ScrollController();
+  bool _isLoadingMore = false;
+  String? _lastFetchedKey; // Used for pagination
+
   @override
   void initState() {
     super.initState();
     _fetchPosts();
+    _scrollController.addListener(_onScroll); // Attach scroll listener
   }
 
-  void _fetchPosts() {
-    _databaseRef.onValue.listen((event) {
+  @override
+  void dispose() {
+    _scrollController.dispose(); // Dispose of the controller
+    super.dispose();
+  }
+
+  void _onScroll() {
+    // Check if the user has scrolled to the bottom of the list
+    if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent && !_isLoadingMore) {
+      _loadMorePosts(); // Load more posts
+    }
+  }
+
+  void _loadMorePosts() {
+    if (_lastFetchedKey != null) {
+      _fetchPosts(startAfterKey: _lastFetchedKey); // Fetch the next set of posts
+    }
+  }
+
+  void _fetchPosts({String? startAfterKey}) {
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    // Create the query
+    Query query = _databaseRef.orderByKey().limitToFirst(10);
+    if (startAfterKey != null) {
+      query = _databaseRef.orderByKey().startAfter(startAfterKey).limitToFirst(10);
+    }
+
+    // Fetch the posts
+    query.onValue.listen((event) {
       if (event.snapshot.value != null) {
         final Map<dynamic, dynamic> data = event.snapshot.value as Map<dynamic, dynamic>;
-
         final List<Map<String, dynamic>> loadedPosts = [];
+
         data.forEach((key, value) {
           loadedPosts.add({
             'companyName': value['companyName'] ?? 'Unknown Company',
@@ -45,12 +80,26 @@ class _HomeScreenState extends State<HomeScreen> {
         });
 
         setState(() {
-          posts = loadedPosts;
-          filteredPosts = loadedPosts;
+          // Check for duplicate posts by comparing keys
+          loadedPosts.forEach((newPost) {
+            if (!posts.any((post) => post['key'] == newPost['key'])) {
+              posts.add(newPost); // Only add the post if it's not already in the list
+            }
+          });
+
+          filteredPosts = posts;
+
+          if (loadedPosts.isNotEmpty) {
+            _lastFetchedKey = loadedPosts.last['key']; // Save the last fetched post's key
+          }
+
+          _isLoadingMore = false;
         });
       }
     });
   }
+
+
 
   void _onSearchChanged(String query) {
     setState(() {
@@ -63,45 +112,75 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void _onLikePressed(int index) {
-    final postKey = filteredPosts[index]['key'];
-    final currentLikes = filteredPosts[index]['likes'];
-    final likedBy = filteredPosts[index]['likedBy'];
-    final dislikedBy = filteredPosts[index]['dislikedBy'];
+  void _onLikePressed(int index) async {
+    String postKey = filteredPosts[index]['key'];
+    String userId = widget.user.uid;
 
-    if (!likedBy.contains(widget.user.uid) && !dislikedBy.contains(widget.user.uid)) {
-      likedBy.add(widget.user.uid);
+    // Update locally first for immediate UI feedback
+    setState(() {
+      filteredPosts[index]['likes'] += 1;
+      filteredPosts[index]['likedBy'].add(userId);
+    });
 
-      _databaseRef.child(postKey).update({
-        'likes': currentLikes + 1,
-        'likedBy': likedBy,
-        'dislikedBy': dislikedBy,
-      });
-    }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('You liked ${filteredPosts[index]['companyName']}')),
+      const SnackBar(
+        content: Text('You liked this post!'),
+        duration: Duration(seconds: 1), // Optional: control how long the SnackBar is visible
+      ),
     );
+
+    // Update Firebase asynchronously
+    await _databaseRef.child(postKey).runTransaction((currentData){
+      if (currentData  != null) {
+        Map<String, dynamic> post = Map<String, dynamic>.from(currentData as Map);
+        int currentLikes = post['likes'] ?? 0;
+        List<String> likedBy = List<String>.from(post['likedBy'] ?? []);
+        if (!likedBy.contains(userId)) {
+          likedBy.add(userId);
+          post['likes'] = currentLikes + 1;
+          post['likedBy'] = likedBy;
+        }
+        return Transaction.success(post);
+      }
+      return Transaction.abort();
+    });
   }
 
-  void _onDislikePressed(int index) {
-    final postKey = filteredPosts[index]['key'];
-    final currentDislikes = filteredPosts[index]['dislikes'];
-    final likedBy = filteredPosts[index]['likedBy'];
-    final dislikedBy = filteredPosts[index]['dislikedBy'];
+  void _onDislikePressed(int index) async {
+    String postKey = filteredPosts[index]['key'];
+    String userId = widget.user.uid;
 
-    if (!dislikedBy.contains(widget.user.uid) && !likedBy.contains(widget.user.uid)) {
-      dislikedBy.add(widget.user.uid);
+    // Update locally first for immediate UI feedback
+    setState(() {
+      filteredPosts[index]['dislikes'] += 1;
+      filteredPosts[index]['dislikedBy'].add(userId);
+    });
 
-      _databaseRef.child(postKey).update({
-        'dislikes': currentDislikes + 1,
-        'dislikedBy': dislikedBy,
-        'likedBy': likedBy,
-      });
-    }
+    // Show SnackBar after clicking dislike
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('You disliked ${filteredPosts[index]['companyName']}')),
+      const SnackBar(
+        content: Text('You disliked this post!'),
+        duration: Duration(seconds: 1), // Optional: control how long the SnackBar is visible
+      ),
     );
+
+    // Update Firebase asynchronously
+    await _databaseRef.child(postKey).runTransaction((currentData) {
+      if (currentData != null) {
+        Map<String, dynamic> post = Map<String, dynamic>.from(currentData as Map);
+        int currentDislikes = post['dislikes'] ?? 0;
+        List<String> dislikedBy = List<String>.from(post['dislikedBy'] ?? []);
+        if (!dislikedBy.contains(userId)) {
+          dislikedBy.add(userId);
+          post['dislikes'] = currentDislikes + 1;
+          post['dislikedBy'] = dislikedBy;
+        }
+        return Transaction.success(post);
+      }
+      return Transaction.abort();
+    });
   }
+
 
   void _onRatePressed(int index, double rating) {
     final postKey = filteredPosts[index]['key'];
@@ -188,6 +267,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: filteredPosts.isEmpty
                 ? const Center(child: Text('No posts available.'))
                 : ListView.builder(
+              controller: _scrollController,
               itemCount: filteredPosts.length,
               itemBuilder: (context, index) {
                 return Card(
