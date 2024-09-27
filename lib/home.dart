@@ -114,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onLikePressed(int index) async {
     String postKey = filteredPosts[index]['key'];
-    String userId = widget.user.uid;
+    String userId = widget.user.displayName ?? 'Unknown User';
 
     // Update locally first for immediate UI feedback
     setState(() {
@@ -148,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onDislikePressed(int index) async {
     String postKey = filteredPosts[index]['key'];
-    String userId = widget.user.uid;
+    String userId = widget.user.displayName ?? 'Unknown User';
 
     // Update locally first for immediate UI feedback
     setState(() {
@@ -282,31 +282,73 @@ class _HomeScreenState extends State<HomeScreen> {
                           // Like/Dislike column
                           Column(
                             children: [
-                              IconButton(
-                                icon: Icon(
-                                  Icons.thumb_up,
-                                  color: filteredPosts[index]['likedBy'].contains(widget.user.uid)
-                                      ? Colors.green
-                                      : Colors.grey,
-                                ),
-                                onPressed: filteredPosts[index]['likedBy'].contains(widget.user.uid) ||
-                                    filteredPosts[index]['dislikedBy'].contains(widget.user.uid)
-                                    ? null
-                                    : () => _onLikePressed(index),
-                              ),
+// Popup for Like button
+                              PopupMenuButton<String>(
+                                onSelected: (value) {},
+                                itemBuilder: (BuildContext context) {
+                                  List<String> likedBy = List<String>.from(filteredPosts[index]['likedBy']);
+                                  if (likedBy.isEmpty) {
+                                    return [
+                                      const PopupMenuItem<String>(
+                                        value: '',
+                                        child: Text('No one liked this post yet.'),
+                                      ),
+                                    ];
+                                  } else {
+                                    return likedBy.map((user) {
+                                      return PopupMenuItem<String>(
+                                        value: user,
+                                        child: Text(user), // Display user names who liked the post
+                                      );
+                                    }).toList();
+                                  }
+                                },
+                                child: IconButton(
+                                  icon: Icon(
+                                    Icons.thumb_up,
+                                    color: filteredPosts[index]['likedBy'].contains(widget.user.uid)
+                                        ? Colors.green
+                                        : Colors.grey,
+                                  ),
+                                  onPressed: filteredPosts[index]['likedBy'].contains(widget.user.displayName) ||
+                                      filteredPosts[index]['dislikedBy'].contains(widget.user.displayName)
+                                      ? null
+                                      : () => _onLikePressed(index),
+                                ),),
                               Text('${filteredPosts[index]['likes']}'),
-                              IconButton(
-                                icon: Icon(
-                                  Icons.thumb_down,
-                                  color: filteredPosts[index]['dislikedBy'].contains(widget.user.uid)
-                                      ? Colors.red
-                                      : Colors.grey,
-                                ),
-                                onPressed: filteredPosts[index]['dislikedBy'].contains(widget.user.uid) ||
-                                    filteredPosts[index]['likedBy'].contains(widget.user.uid)
-                                    ? null
-                                    : () => _onDislikePressed(index),
-                              ),
+// Popup for Dislike button
+                              PopupMenuButton<String>(
+                                onSelected: (value) {},
+                                itemBuilder: (BuildContext context) {
+                                  List<String> dislikedBy = List<String>.from(filteredPosts[index]['dislikedBy']);
+                                  if (dislikedBy.isEmpty) {
+                                    return [
+                                      const PopupMenuItem<String>(
+                                        value: '',
+                                        child: Text('No one disliked this post yet.'),
+                                      ),
+                                    ];
+                                  } else {
+                                    return dislikedBy.map((user) {
+                                      return PopupMenuItem<String>(
+                                        value: user,
+                                        child: Text(user), // Display user names who disliked the post
+                                      );
+                                    }).toList();
+                                  }
+                                },
+                                child: IconButton(
+                                  icon: Icon(
+                                    Icons.thumb_down,
+                                    color: filteredPosts[index]['dislikedBy'].contains(widget.user.uid)
+                                        ? Colors.red
+                                        : Colors.grey,
+                                  ),
+                                  onPressed: filteredPosts[index]['dislikedBy'].contains(widget.user.displayName) ||
+                                      filteredPosts[index]['likedBy'].contains(widget.user.displayName)
+                                      ? null
+                                      : () => _onDislikePressed(index),
+                                ),),
                               Text('${filteredPosts[index]['dislikes']}'),
                             ],
                           ),
