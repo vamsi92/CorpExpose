@@ -80,14 +80,20 @@ class _HomeScreenState extends State<HomeScreen> {
         });
 
         setState(() {
-          // Check for duplicate posts by comparing keys
+          // Initialize a Set to track existing post keys
+          Set<String> existingKeys = <String>{};
+
+// Check for duplicate posts by comparing keys
           loadedPosts.forEach((newPost) {
-            if (!posts.any((post) => post['key'] == newPost['key'])) {
-              posts.add(newPost); // Only add the post if it's not already in the list
+            // Check if the key is already in the Set
+            if (existingKeys.add(newPost['key'])) {
+              posts.add(newPost); // Only add the post if it's not already in the Set
             }
           });
 
+// Assign filteredPosts to posts
           filteredPosts = posts;
+
 
           if (loadedPosts.isNotEmpty) {
             _lastFetchedKey = loadedPosts.last['key']; // Save the last fetched post's key
