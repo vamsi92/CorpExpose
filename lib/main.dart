@@ -5,6 +5,7 @@ import 'auth.dart';
 import 'home.dart';
 import 'post_screen.dart';
 import 'firebase_options.dart';
+import 'my_posts.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
         '/auth': (context) => AuthScreen(),
         '/home': (context) => HomeScreen(user: FirebaseAuth.instance.currentUser!),
         '/post': (context) => PostScreen(user: FirebaseAuth.instance.currentUser!),
+        '/myPosts': (context) => MyPostsScreen(user: FirebaseAuth.instance.currentUser!),
       },
     );
   }

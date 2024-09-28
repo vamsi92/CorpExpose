@@ -16,14 +16,24 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> posts = [];
   List<Map<String, dynamic>> filteredPosts = [];
   String _searchQuery = "";
+  String loggedInUser = "";
 
   final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
   String? _lastFetchedKey; // Used for pagination
 
+  // Define a key for the drawer
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  // Navigation to My Posts page
+  void _navigateToMyPosts() {
+    Navigator.pushNamed(context, '/myPosts'); // Ensure you have a route for My Posts
+  }
+
   @override
   void initState() {
     super.initState();
+    loggedInUser = widget.user.displayName ?? 'Unknown User';
     _fetchPosts();
     _scrollController.addListener(_onScroll); // Attach scroll listener
   }
@@ -216,6 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         backgroundColor: Colors.white, // Change to a white background for a clean UI
         elevation: 2, // Slight shadow for the app bar
@@ -256,6 +267,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.list, color: Colors.black), // Icon for My Posts
+            onPressed: () {
+              _navigateToMyPosts(); // Function to navigate to My Posts page
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.black),
             onPressed: () async {
