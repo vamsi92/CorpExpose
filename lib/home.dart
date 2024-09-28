@@ -26,8 +26,11 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // Navigation to My Posts page
-  void _navigateToMyPosts() {
-    Navigator.pushNamed(context, '/myPosts'); // Ensure you have a route for My Posts
+  void _navigateToMyPosts() async {
+    final result = await Navigator.pushNamed(context, '/myPosts');
+    if (result == true) {
+      _fetchPosts(); // Reload posts when coming back from "My Posts"
+    }
   }
 
   @override
@@ -57,7 +60,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _fetchPosts({String? startAfterKey}) {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _fetchPosts(); // Fetch the posts when dependencies change
+  }
+
+
+  void _fetchPosts({String? startAfterKey}) async {
     setState(() {
       _isLoadingMore = true;
     });

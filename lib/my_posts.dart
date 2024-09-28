@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'edit_post.dart';
 
 class MyPostsScreen extends StatefulWidget {
   final User user;
@@ -22,22 +23,28 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   }
 
   void _fetchMyPosts() async {
-    final snapshot = await _databaseRef.orderByChild('postedBy').equalTo(widget.user.displayName).once();
+    final snapshot = await _databaseRef
+        .orderByChild('postedBy')
+        .equalTo(widget.user.displayName)
+        .once();
     if (snapshot.snapshot.value != null) {
       final data = snapshot.snapshot.value as Map<dynamic, dynamic>;
-      data.forEach((key, value) {
-        myPosts.add({
-          'key': key,
-          'companyName': value['companyName'],
-          'postedBy': value['postedBy'],
-          'content': value['content'],
-          'likes': value['likes'] ?? 0,
-          'likedBy': value['likedBy'] ?? [],
-          'dislikedBy': value['dislikedBy'] ?? [],
-          'dislikes': value['dislikes'] ?? 0,
+      // Clear previous posts to avoid duplicates
+      setState(() {
+        myPosts.clear();
+        data.forEach((key, value) {
+          myPosts.add({
+            'key': key,
+            'companyName': value['companyName'],
+            'postedBy': value['postedBy'],
+            'content': value['content'],
+            'likes': value['likes'] ?? 0,
+            'likedBy': value['likedBy'] ?? [],
+            'dislikedBy': value['dislikedBy'] ?? [],
+            'dislikes': value['dislikes'] ?? 0,
+          });
         });
       });
-      setState(() {});
     } else {
       setState(() {
         myPosts = [];
@@ -52,6 +59,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     });
   }
 
+
   // Replace this with your like and dislike logic
   void _onLikePressed(int index) {}
   void _onDislikePressed(int index) {}
@@ -59,7 +67,13 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('My Posts')),
+      appBar: AppBar(title: Text('My Posts'),
+      leading: IconButton(
+      icon: Icon(Icons.arrow_back),
+      onPressed: () {
+        Navigator.pop(context,true);
+      },
+    ),),
       body: myPosts.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : ListView.builder(
@@ -81,7 +95,10 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                         IconButton(
                           icon: Icon(
                             Icons.thumb_up,
-                            color: myPosts[index]['likedBy'].contains(widget.user.uid) ? Colors.green : Colors.grey,
+                            color: myPosts[index]['likedBy']
+                                .contains(widget.user.uid)
+                                ? Colors.green
+                                : Colors.grey,
                           ),
                           onPressed: () => _onLikePressed(index),
                         ),
@@ -90,7 +107,10 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                         IconButton(
                           icon: Icon(
                             Icons.thumb_down,
-                            color: myPosts[index]['dislikedBy'].contains(widget.user.uid) ? Colors.red : Colors.grey,
+                            color: myPosts[index]['dislikedBy']
+                                .contains(widget.user.uid)
+                                ? Colors.red
+                                : Colors.grey,
                           ),
                           onPressed: () => _onDislikePressed(index),
                         ),
@@ -113,18 +133,53 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                               Expanded(
                                 child: Text(
                                   myPosts[index]['companyName'],
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18),
                                 ),
                               ),
-                              // Delete button aligned to the right
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _deletePost(myPosts[index]['key']),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit,
+                                        color: Colors.blue),
+                                    onPressed: () async {
+                                      bool? isUpdated =
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              EditPostScreen(
+                                                postId: myPosts[index]['key'],
+                                                initialContent:
+                                                myPosts[index]['content'],
+                                              ),
+                                        ),
+                                      );
+                                      if (isUpdated == true) {
+                                        // Reload the posts data
+                                        _fetchMyPosts(); // Call your method to reload posts
+                                      }
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete,
+                                        color: Colors.red),
+                                    onPressed: () =>
+                                        _deletePost(myPosts[index]
+                                        ['key']),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
                           const SizedBox(height: 4),
-                          Text("Posted by: ${myPosts[index]['postedBy']}", style: const TextStyle(color: Colors.grey)),
+                          Text(
+                            "Posted by: ${myPosts[index]['postedBy']}",
+                            style:
+                            const TextStyle(color: Colors.grey),
+                          ),
                           const SizedBox(height: 4),
                           Text(myPosts[index]['content']),
                         ],

@@ -7,6 +7,7 @@ import 'post_screen.dart';
 import 'firebase_options.dart';
 import 'my_posts.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
