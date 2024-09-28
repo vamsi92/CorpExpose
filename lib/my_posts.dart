@@ -42,6 +42,8 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
             'likedBy': value['likedBy'] ?? [],
             'dislikedBy': value['dislikedBy'] ?? [],
             'dislikes': value['dislikes'] ?? 0,
+            'ratings': value['ratings'] ?? 0.0,
+            'ratedBy': List<String>.from(value['ratedBy'] ?? []),
           });
         });
       });
@@ -129,7 +131,31 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     });
   }
 
-  @override
+  void _onRatePressed(int index, double rating) {
+    final postKey = myPosts[index]['key'];
+    final ratedBy = myPosts[index]['ratedBy'];
+    final currentRating = myPosts[index]['ratings'];
+
+    if (!ratedBy.contains(widget.user.uid)) {
+      ratedBy.add(widget.user.uid);
+
+      // Calculate the new average rating
+      final totalRaters = ratedBy.length;
+      final newRating = (currentRating * (totalRaters - 1) + rating) / totalRaters;
+
+      _databaseRef.child(postKey).update({
+        'ratings': newRating,
+        'ratedBy': ratedBy,
+      });
+
+      // Update the UI
+      setState(() {
+        myPosts[index]['ratings'] = newRating;
+        myPosts[index]['ratedBy'] = ratedBy;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -147,6 +173,14 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
           : ListView.builder(
         itemCount: myPosts.length,
         itemBuilder: (context, index) {
+          List<String> likedBy = List<String>.from(myPosts[index]['likedBy'] ?? []);
+          List<String> dislikedBy = List<String>.from(myPosts[index]['dislikedBy'] ?? []);
+
+          // Default values for likes, dislikes, and ratings if null
+          int likes = myPosts[index]['likes'] ?? 0;
+          int dislikes = myPosts[index]['dislikes'] ?? 0;
+          double ratings = myPosts[index]['ratings'] ?? 0.0;
+
           return Card(
             margin: const EdgeInsets.all(8.0),
             child: Padding(
@@ -159,10 +193,10 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                     // Like/Dislike column
                     Column(
                       children: [
+                        // Popup for Like button
                         PopupMenuButton<String>(
                           onSelected: (value) {},
                           itemBuilder: (BuildContext context) {
-                            List<String> likedBy = List<String>.from(myPosts[index]['likedBy']);
                             if (likedBy.isEmpty) {
                               return [
                                 const PopupMenuItem<String>(
@@ -182,21 +216,19 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                           child: IconButton(
                             icon: Icon(
                               Icons.thumb_up,
-                              color: myPosts[index]['likedBy'].contains(widget.user.uid)
-                                  ? Colors.green
-                                  : Colors.grey,
+                              color: likedBy.contains(widget.user.uid) ? Colors.green : Colors.grey,
                             ),
-                            onPressed: myPosts[index]['likedBy'].contains(widget.user.displayName) ||
-                                myPosts[index]['dislikedBy'].contains(widget.user.displayName)
+                            onPressed: likedBy.contains(widget.user.uid) || dislikedBy.contains(widget.user.uid)
                                 ? null
                                 : () => _onLikePressed(index),
-                          ),),
-                        Text('${myPosts[index]['likes']}'),
-// Popup for Dislike button
+                          ),
+                        ),
+                        Text('$likes'),
+
+                        // Popup for Dislike button
                         PopupMenuButton<String>(
                           onSelected: (value) {},
                           itemBuilder: (BuildContext context) {
-                            List<String> dislikedBy = List<String>.from(myPosts[index]['dislikedBy']);
                             if (dislikedBy.isEmpty) {
                               return [
                                 const PopupMenuItem<String>(
@@ -216,16 +248,14 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                           child: IconButton(
                             icon: Icon(
                               Icons.thumb_down,
-                              color: myPosts[index]['dislikedBy'].contains(widget.user.uid)
-                                  ? Colors.red
-                                  : Colors.grey,
+                              color: dislikedBy.contains(widget.user.uid) ? Colors.red : Colors.grey,
                             ),
-                            onPressed: myPosts[index]['dislikedBy'].contains(widget.user.displayName) ||
-                                myPosts[index]['likedBy'].contains(widget.user.displayName)
+                            onPressed: dislikedBy.contains(widget.user.uid) || likedBy.contains(widget.user.uid)
                                 ? null
                                 : () => _onDislikePressed(index),
-                          ),),
-                        Text('${myPosts[index]['dislikes']}'),
+                          ),
+                        ),
+                        Text('$dislikes'),
                       ],
                     ),
                     Container(
@@ -239,18 +269,34 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            myPosts[index]['companyName'],
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 18),
+                          Row(
+                            children: [
+                              Text(
+                                myPosts[index]['companyName'] ?? '',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                              ),
+                              const SizedBox(width: 8),
+                              // Display average rating
+                              Row(
+                                children: List.generate(5, (ratingIndex) {
+                                  return GestureDetector(
+                                    onTap: () => _onRatePressed(index, ratingIndex + 1), // User can tap on stars
+                                    child: Icon(
+                                      Icons.star,
+                                      color: (ratingIndex < ratings) ? Colors.yellow : Colors.grey,
+                                    ),
+                                  );
+                                }),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            "Posted by: ${myPosts[index]['postedBy']}",
+                            "Posted by: ${myPosts[index]['postedBy'] ?? ''}",
                             style: const TextStyle(color: Colors.grey),
                           ),
                           const SizedBox(height: 4),
-                          Text(myPosts[index]['content']),
+                          Text(myPosts[index]['content'] ?? ''),
                         ],
                       ),
                     ),
@@ -299,4 +345,5 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
       ),
     );
   }
+
 }
