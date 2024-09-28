@@ -60,9 +60,74 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   }
 
 
-  // Replace this with your like and dislike logic
-  void _onLikePressed(int index) {}
-  void _onDislikePressed(int index) {}
+  void _onLikePressed(int index) async {
+    String postKey = myPosts[index]['key'];
+    String userId = widget.user.displayName ?? 'Unknown User';
+
+    // Update locally first for immediate UI feedback
+    setState(() {
+      myPosts[index]['likes'] += 1;
+      myPosts[index]['likedBy'].add(userId);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('You liked this post!'),
+        duration: Duration(seconds: 1), // Optional: control how long the SnackBar is visible
+      ),
+    );
+
+    // Update Firebase asynchronously
+    await _databaseRef.child(postKey).runTransaction((currentData){
+      if (currentData  != null) {
+        Map<String, dynamic> post = Map<String, dynamic>.from(currentData as Map);
+        int currentLikes = post['likes'] ?? 0;
+        List<String> likedBy = List<String>.from(post['likedBy'] ?? []);
+        if (!likedBy.contains(userId)) {
+          likedBy.add(userId);
+          post['likes'] = currentLikes + 1;
+          post['likedBy'] = likedBy;
+        }
+        return Transaction.success(post);
+      }
+      return Transaction.abort();
+    });
+  }
+
+  void _onDislikePressed(int index) async {
+    String postKey = myPosts[index]['key'];
+    String userId = widget.user.displayName ?? 'Unknown User';
+
+    // Update locally first for immediate UI feedback
+    setState(() {
+      myPosts[index]['dislikes'] += 1;
+      myPosts[index]['dislikedBy'].add(userId);
+    });
+
+    // Show SnackBar after clicking dislike
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('You disliked this post!'),
+        duration: Duration(seconds: 1), // Optional: control how long the SnackBar is visible
+      ),
+    );
+
+    // Update Firebase asynchronously
+    await _databaseRef.child(postKey).runTransaction((currentData) {
+      if (currentData != null) {
+        Map<String, dynamic> post = Map<String, dynamic>.from(currentData as Map);
+        int currentDislikes = post['dislikes'] ?? 0;
+        List<String> dislikedBy = List<String>.from(post['dislikedBy'] ?? []);
+        if (!dislikedBy.contains(userId)) {
+          dislikedBy.add(userId);
+          post['dislikes'] = currentDislikes + 1;
+          post['dislikedBy'] = dislikedBy;
+        }
+        return Transaction.success(post);
+      }
+      return Transaction.abort();
+    });
+  }
 
   @override
   @override
@@ -94,29 +159,72 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                     // Like/Dislike column
                     Column(
                       children: [
-                        // Like button
-                        IconButton(
-                          icon: Icon(
-                            Icons.thumb_up,
-                            color: myPosts[index]['likedBy']
-                                .contains(widget.user.uid)
-                                ? Colors.green
-                                : Colors.grey,
-                          ),
-                          onPressed: () => _onLikePressed(index),
-                        ),
+                        PopupMenuButton<String>(
+                          onSelected: (value) {},
+                          itemBuilder: (BuildContext context) {
+                            List<String> likedBy = List<String>.from(myPosts[index]['likedBy']);
+                            if (likedBy.isEmpty) {
+                              return [
+                                const PopupMenuItem<String>(
+                                  value: '',
+                                  child: Text('No one liked this post yet.'),
+                                ),
+                              ];
+                            } else {
+                              return likedBy.map((user) {
+                                return PopupMenuItem<String>(
+                                  value: user,
+                                  child: Text(user), // Display user names who liked the post
+                                );
+                              }).toList();
+                            }
+                          },
+                          child: IconButton(
+                            icon: Icon(
+                              Icons.thumb_up,
+                              color: myPosts[index]['likedBy'].contains(widget.user.uid)
+                                  ? Colors.green
+                                  : Colors.grey,
+                            ),
+                            onPressed: myPosts[index]['likedBy'].contains(widget.user.displayName) ||
+                                myPosts[index]['dislikedBy'].contains(widget.user.displayName)
+                                ? null
+                                : () => _onLikePressed(index),
+                          ),),
                         Text('${myPosts[index]['likes']}'),
-                        // Dislike button
-                        IconButton(
-                          icon: Icon(
-                            Icons.thumb_down,
-                            color: myPosts[index]['dislikedBy']
-                                .contains(widget.user.uid)
-                                ? Colors.red
-                                : Colors.grey,
-                          ),
-                          onPressed: () => _onDislikePressed(index),
-                        ),
+// Popup for Dislike button
+                        PopupMenuButton<String>(
+                          onSelected: (value) {},
+                          itemBuilder: (BuildContext context) {
+                            List<String> dislikedBy = List<String>.from(myPosts[index]['dislikedBy']);
+                            if (dislikedBy.isEmpty) {
+                              return [
+                                const PopupMenuItem<String>(
+                                  value: '',
+                                  child: Text('No one disliked this post yet.'),
+                                ),
+                              ];
+                            } else {
+                              return dislikedBy.map((user) {
+                                return PopupMenuItem<String>(
+                                  value: user,
+                                  child: Text(user), // Display user names who disliked the post
+                                );
+                              }).toList();
+                            }
+                          },
+                          child: IconButton(
+                            icon: Icon(
+                              Icons.thumb_down,
+                              color: myPosts[index]['dislikedBy'].contains(widget.user.uid)
+                                  ? Colors.red
+                                  : Colors.grey,
+                            ),
+                            onPressed: myPosts[index]['dislikedBy'].contains(widget.user.displayName) ||
+                                myPosts[index]['likedBy'].contains(widget.user.displayName)
+                                ? null
+                                : () => _onDislikePressed(index),
+                          ),),
                         Text('${myPosts[index]['dislikes']}'),
                       ],
                     ),
