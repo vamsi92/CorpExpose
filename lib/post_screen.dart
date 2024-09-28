@@ -15,7 +15,7 @@ class _PostScreenState extends State<PostScreen> {
   final _formKey = GlobalKey<FormState>();
   String _companyName = "";
   String _postContent = "";
-  final int _maxChars = 500;
+  final int _maxChars = 1000;
   final DatabaseReference _databaseRef = FirebaseDatabase.instance.ref("posts");
 
   void _submitPost() async {
@@ -24,6 +24,7 @@ class _PostScreenState extends State<PostScreen> {
 
       // Create a new post entry
       final newPostRef = _databaseRef.push();
+      try {
       await newPostRef.set({
         'companyName': _companyName,
         'postedBy': widget.user.displayName,
@@ -33,7 +34,24 @@ class _PostScreenState extends State<PostScreen> {
         'timestamp': DateTime.now().toIso8601String(),
       });
 
+      // Show success Snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Post submitted successfully!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
       Navigator.pop(context); // Go back to the homepage after posting
+      } catch (e) {
+        // Show error Snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit post: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 

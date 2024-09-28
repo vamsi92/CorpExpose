@@ -13,7 +13,7 @@ class EditPostScreen extends StatefulWidget {
 
 class _EditPostScreenState extends State<EditPostScreen> {
   final TextEditingController _contentController = TextEditingController();
-  final int _characterLimit = 500; // Set your character limit here
+  final int _characterLimit = 1000; // Set your character limit here
   int _currentLength = 0; // Variable to keep track of current length
 
   @override
@@ -31,13 +31,22 @@ class _EditPostScreenState extends State<EditPostScreen> {
   }
 
   Future<bool> _updatePost() async {
-    // Update the post in Firebase
-    DatabaseReference postRef = FirebaseDatabase.instance.ref('posts/${widget.postId}');
+    try {
+      // Update the post in Firebase
+      DatabaseReference postRef = FirebaseDatabase.instance.ref(
+          'posts/${widget.postId}');
 
-    await postRef.update({
-      'content': _contentController.text,
-    });
-    return true;
+      await postRef.update({
+        'content': _contentController.text,
+      });
+      return true;
+    }catch (e) {
+      // Show an error message if the update fails
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update post.')),
+      );
+      return false;
+    }
   }
 
   @override
@@ -70,6 +79,9 @@ class _EditPostScreenState extends State<EditPostScreen> {
               onPressed: () async {
                 bool updated = await _updatePost();
                 if (updated) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Post updated successfully.')),
+                  );
                   Navigator.pop(context, true); // Pass true back to indicate update
                 }
               },

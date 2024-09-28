@@ -55,11 +55,30 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   }
 
   void _deletePost(String postKey) {
-    _databaseRef.child(postKey).remove();
-    setState(() {
-      myPosts.removeWhere((post) => post['key'] == postKey);
+    _databaseRef.child(postKey).remove().then((_) {
+      // Show SnackBar on successful deletion
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Post deleted successfully!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Update the state to remove the post from the list
+      setState(() {
+        myPosts.removeWhere((post) => post['key'] == postKey);
+      });
+    }).catchError((error) {
+      // Handle any errors that might occur during deletion
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete post: $error'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     });
   }
+
 
 
   void _onLikePressed(int index) async {

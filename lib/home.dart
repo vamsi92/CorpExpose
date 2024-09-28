@@ -68,61 +68,73 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
   void _fetchPosts({String? startAfterKey}) async {
-    setState(() {
-      _isLoadingMore = true;
-    });
+    try {
+      setState(() {
+        _isLoadingMore = true;
+      });
 
-    // Create the query
-    Query query = _databaseRef.orderByKey().limitToFirst(10);
-    if (startAfterKey != null) {
-      query = _databaseRef.orderByKey().startAfter(startAfterKey).limitToFirst(10);
-    }
+      // Create the query
+      Query query = _databaseRef.orderByKey().limitToFirst(10);
+      if (startAfterKey != null) {
+        query =
+            _databaseRef.orderByKey().startAfter(startAfterKey).limitToFirst(
+                10);
+      }
 
-    // Fetch the posts
-    query.onValue.listen((event) {
-      if (event.snapshot.value != null) {
-        final Map<dynamic, dynamic> data = event.snapshot.value as Map<dynamic, dynamic>;
-        final List<Map<String, dynamic>> loadedPosts = [];
+      // Fetch the posts
+      query.onValue.listen((event) {
+        if (event.snapshot.value != null) {
+          final Map<dynamic, dynamic> data = event.snapshot.value as Map<
+              dynamic,
+              dynamic>;
+          final List<Map<String, dynamic>> loadedPosts = [];
 
-        data.forEach((key, value) {
-          loadedPosts.add({
-            'companyName': value['companyName'] ?? 'Unknown Company',
-            'postedBy': value['postedBy'] ?? 'Anonymous',
-            'content': value['content'] ?? 'No Content',
-            'likes': value['likes'] ?? 0,
-            'dislikes': value['dislikes'] ?? 0,
-            'ratings': value['ratings'] ?? 0.0,
-            'ratedBy': List<String>.from(value['ratedBy'] ?? []),
-            'likedBy': List<String>.from(value['likedBy'] ?? []),
-            'dislikedBy': List<String>.from(value['dislikedBy'] ?? []),
-            'key': key,
+          data.forEach((key, value) {
+            loadedPosts.add({
+              'companyName': value['companyName'] ?? 'Unknown Company',
+              'postedBy': value['postedBy'] ?? 'Anonymous',
+              'content': value['content'] ?? 'No Content',
+              'likes': value['likes'] ?? 0,
+              'dislikes': value['dislikes'] ?? 0,
+              'ratings': value['ratings'] ?? 0.0,
+              'ratedBy': List<String>.from(value['ratedBy'] ?? []),
+              'likedBy': List<String>.from(value['likedBy'] ?? []),
+              'dislikedBy': List<String>.from(value['dislikedBy'] ?? []),
+              'key': key,
+            });
           });
-        });
 
-        setState(() {
-          // Initialize a Set to track existing post keys
-          Set<String> existingKeys = <String>{};
+          setState(() {
+            // Initialize a Set to track existing post keys
+            Set<String> existingKeys = <String>{};
 
 // Check for duplicate posts by comparing keys
-          loadedPosts.forEach((newPost) {
-            // Check if the key is already in the Set
-            if (existingKeys.add(newPost['key'])) {
-              posts.add(newPost); // Only add the post if it's not already in the Set
-            }
-          });
+            loadedPosts.forEach((newPost) {
+              // Check if the key is already in the Set
+              if (existingKeys.add(newPost['key'])) {
+                posts.add(
+                    newPost); // Only add the post if it's not already in the Set
+              }
+            });
 
 // Assign filteredPosts to posts
-          filteredPosts = posts;
+            filteredPosts = posts;
 
 
-          if (loadedPosts.isNotEmpty) {
-            _lastFetchedKey = loadedPosts.last['key']; // Save the last fetched post's key
-          }
+            if (loadedPosts.isNotEmpty) {
+              _lastFetchedKey =
+              loadedPosts.last['key']; // Save the last fetched post's key
+            }
 
-          _isLoadingMore = false;
-        });
-      }
-    });
+            _isLoadingMore = false;
+          });
+        }
+      });
+    }catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching posts: $e')),
+      );
+    }
   }
 
 
@@ -440,11 +452,45 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
-        onPressed: () {
-          Navigator.pushNamed(context, '/post');
-        },
+      floatingActionButton: Stack(
+        children: <Widget>[
+          // Refresh Button
+          Positioned(
+            bottom: 16,
+            right: 16,
+            child: FloatingActionButton(
+              heroTag: 'refresh', // Unique tag for the button
+              child: const Icon(Icons.refresh),
+              onPressed: () {
+                setState(() {
+                  posts.clear(); // Clear existing posts
+                  filteredPosts.clear(); // Clear filtered posts
+                  _lastFetchedKey = null; // Reset pagination
+                  _fetchPosts(); // Fetch posts again
+                });
+                // Show a Snackbar message
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Posts refreshed!'), // Message to display
+                    duration: Duration(seconds: 2), // Duration to show the Snackbar
+                  ),
+                );
+              },
+            ),
+          ),
+          // Add Post Button
+          Positioned(
+            bottom: 16,
+            right: 80, // Adjust position as needed
+            child: FloatingActionButton(
+              heroTag: 'add', // Unique tag for the button
+              child: const Icon(Icons.add),
+              onPressed: () {
+                Navigator.pushNamed(context, '/post');
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
