@@ -65,15 +65,18 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   void _onDislikePressed(int index) {}
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('My Posts'),
-      leading: IconButton(
-      icon: Icon(Icons.arrow_back),
-      onPressed: () {
-        Navigator.pop(context,true);
-      },
-    ),),
+      appBar: AppBar(
+        title: Text('My Posts'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context, true);
+          },
+        ),
+      ),
       body: myPosts.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : ListView.builder(
@@ -128,62 +131,56 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  myPosts[index]['companyName'],
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18),
-                                ),
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit,
-                                        color: Colors.blue),
-                                    onPressed: () async {
-                                      bool? isUpdated =
-                                      await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              EditPostScreen(
-                                                postId: myPosts[index]['key'],
-                                                initialContent:
-                                                myPosts[index]['content'],
-                                              ),
-                                        ),
-                                      );
-                                      if (isUpdated == true) {
-                                        // Reload the posts data
-                                        _fetchMyPosts(); // Call your method to reload posts
-                                      }
-                                    },
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete,
-                                        color: Colors.red),
-                                    onPressed: () =>
-                                        _deletePost(myPosts[index]
-                                        ['key']),
-                                  ),
-                                ],
-                              ),
-                            ],
+                          Text(
+                            myPosts[index]['companyName'],
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 18),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             "Posted by: ${myPosts[index]['postedBy']}",
-                            style:
-                            const TextStyle(color: Colors.grey),
+                            style: const TextStyle(color: Colors.grey),
                           ),
                           const SizedBox(height: 4),
                           Text(myPosts[index]['content']),
                         ],
                       ),
+                    ),
+                    Container(
+                      width: 1,
+                      color: Colors.grey,
+                      height: 120,
+                      margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                    ),
+                    // Edit/Delete column
+                    Column(
+                      children: [
+                        // Edit button
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () async {
+                            bool? isUpdated = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => EditPostScreen(
+                                  postId: myPosts[index]['key'],
+                                  initialContent: myPosts[index]['content'],
+                                ),
+                              ),
+                            );
+                            if (isUpdated == true) {
+                              // Reload the posts data
+                              _fetchMyPosts(); // Call your method to reload posts
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 8), // Spacing between buttons
+                        // Delete button
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _deletePost(myPosts[index]['key']),
+                        ),
+                      ],
                     ),
                   ],
                 ),
