@@ -23,36 +23,52 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   }
 
   void _fetchMyPosts() async {
-    final snapshot = await _databaseRef
-        .orderByChild('postedBy')
-        .equalTo(widget.user.displayName)
-        .once();
-    if (snapshot.snapshot.value != null) {
-      final data = snapshot.snapshot.value as Map<dynamic, dynamic>;
-      // Clear previous posts to avoid duplicates
-      setState(() {
-        myPosts.clear();
-        data.forEach((key, value) {
-          myPosts.add({
-            'key': key,
-            'companyName': value['companyName'],
-            'postedBy': value['postedBy'],
-            'content': value['content'],
-            'likes': value['likes'] ?? 0,
-            'likedBy': value['likedBy'] ?? [],
-            'dislikedBy': value['dislikedBy'] ?? [],
-            'dislikes': value['dislikes'] ?? 0,
-            'ratings': value['ratings'] ?? 0.0,
-            'ratedBy': List<String>.from(value['ratedBy'] ?? []),
+    try {
+      final snapshot = await _databaseRef
+          .orderByChild('postedBy')
+          .equalTo(widget.user.displayName)
+          .once();
+
+      if (snapshot.snapshot.value != null) {
+        final data = snapshot.snapshot.value as Map<dynamic, dynamic>;
+        // Clear previous posts to avoid duplicates
+        setState(() {
+          myPosts.clear();
+          // Create a list to hold posts with their timestamp
+          List<Map<String, dynamic>> loadedPosts = [];
+
+          data.forEach((key, value) {
+            loadedPosts.add({
+              'key': key,
+              'companyName': value['companyName'],
+              'postedBy': value['postedBy'],
+              'content': value['content'],
+              'likes': value['likes'] ?? 0,
+              'likedBy': value['likedBy'] ?? [],
+              'dislikedBy': value['dislikedBy'] ?? [],
+              'dislikes': value['dislikes'] ?? 0,
+              'ratings': value['ratings'] ?? 0.0,
+              'ratedBy': List<String>.from(value['ratedBy'] ?? []),
+              'timestamp': value['timestamp'] ?? 0, // Assuming you have a timestamp field
+            });
           });
+
+          // Sort posts by timestamp in descending order (most recent first)
+          loadedPosts.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
+          myPosts.addAll(loadedPosts); // Add the sorted posts to myPosts
         });
-      });
-    } else {
-      setState(() {
-        myPosts = [];
-      });
+      } else {
+        setState(() {
+          myPosts = [];
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching your posts: $e')),
+      );
     }
   }
+
 
   void _deletePost(String postKey) {
     _databaseRef.child(postKey).remove().then((_) {

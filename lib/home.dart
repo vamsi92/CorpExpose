@@ -78,9 +78,9 @@ class _HomeScreenState extends State<HomeScreen> {
       });
 
       // Create the query
-      Query query = _databaseRef.orderByKey().limitToFirst(10);
+      Query query = _databaseRef.orderByChild('timestamp').limitToLast(10);
       if (startAfterKey != null) {
-        query = _databaseRef.orderByKey().startAfter(startAfterKey).limitToFirst(10);
+        query = _databaseRef.orderByChild('timestamp').endAt(startAfterKey).limitToLast(10);
       }
 
       // Fetch the posts
@@ -104,9 +104,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 'likedBy': List<String>.from(value['likedBy'] ?? []),
                 'dislikedBy': List<String>.from(value['dislikedBy'] ?? []),
                 'key': key,
+                'timestamp': value['timestamp'] ?? 0, // Assuming you have a timestamp field
               });
             }
           });
+
+          // Sort posts by timestamp in descending order (most recent first)
+          loadedPosts.sort((a, b) => b['timestamp'].compareTo(a['timestamp']));
 
           setState(() {
             posts.addAll(loadedPosts); // Add only non-duplicate posts
@@ -126,6 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
   }
+
 
 
 
