@@ -76,6 +76,11 @@ class _EditPostScreenState extends State<EditPostScreen> {
             ),
             SizedBox(height: 16),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black, // Set your desired background color
+                foregroundColor: Colors.white, // Set your desired text color
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Adjust padding
+              ),
               onPressed: () async {
                 bool updated = await _updatePost();
                 if (updated) {
@@ -85,7 +90,10 @@ class _EditPostScreenState extends State<EditPostScreen> {
                   Navigator.pop(context, true); // Pass true back to indicate update
                 }
               },
-              child: Text('Save Changes'),
+              child: const Text(
+                'Save Changes',
+                style: TextStyle(fontSize: 16), // Customize font size if needed
+              ),
             ),
           ],
         ),

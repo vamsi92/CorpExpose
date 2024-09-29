@@ -29,7 +29,7 @@ class AuthScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               const Text(
-                'Discover the hidden truths behind companies.',
+                'Discover the worst rejections about companies.',
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey,
@@ -43,6 +43,8 @@ class AuthScreen extends StatelessWidget {
                   await signInWithGoogle(context);
                 },
                 style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black, // Background color
+                  foregroundColor: Colors.white, // Text color
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),

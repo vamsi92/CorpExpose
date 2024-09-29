@@ -188,7 +188,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
         ),
       ),
       body: myPosts.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: Text('No posts to display.'),)
           : ListView.builder(
         itemCount: myPosts.length,
         itemBuilder: (context, index) {

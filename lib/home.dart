@@ -295,7 +295,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: posts.isEmpty
-          ? const Center(child: CircularProgressIndicator()) // Show loading while fetching posts
+          ? const Center(child: Text('No posts to display.'),) // Show loading while fetching posts
           : Column(
         children: [
           Expanded(

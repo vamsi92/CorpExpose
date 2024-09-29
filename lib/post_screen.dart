@@ -165,8 +165,17 @@ class _PostScreenState extends State<PostScreen> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _submitPost,
-                child: const Text('Submit Post'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black, // Set your desired background color
+                  foregroundColor: Colors.white, // Set your desired text color
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Adjust padding
+                ),
+                child: const Text(
+                  'Submit Post',
+                  style: TextStyle(fontSize: 16), // Customize font size if needed
+                ),
               ),
+
             ],
           ),
         ),
