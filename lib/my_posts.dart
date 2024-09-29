@@ -237,12 +237,13 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                               Icons.thumb_up,
                               color: likedBy.contains(widget.user.uid) ? Colors.green : Colors.grey,
                             ),
-                            onPressed: likedBy.contains(widget.user.uid) || dislikedBy.contains(widget.user.uid)
+                            onPressed: myPosts[index]['likedBy'].contains(widget.user.displayName) ||
+                                myPosts[index]['dislikedBy'].contains(widget.user.displayName)
                                 ? null
                                 : () => _onLikePressed(index),
                           ),
                         ),
-                        Text('$likes'),
+                        Text('${myPosts[index]['likes']}'),
 
                         // Popup for Dislike button
                         PopupMenuButton<String>(
@@ -269,12 +270,12 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                               Icons.thumb_down,
                               color: dislikedBy.contains(widget.user.uid) ? Colors.red : Colors.grey,
                             ),
-                            onPressed: dislikedBy.contains(widget.user.uid) || likedBy.contains(widget.user.uid)
+                            onPressed: myPosts[index]['dislikedBy'].contains(widget.user.displayName) ||
+                                myPosts[index]['likedBy'].contains(widget.user.displayName)
                                 ? null
                                 : () => _onDislikePressed(index),
-                          ),
-                        ),
-                        Text('$dislikes'),
+                          ),),
+                        Text('${myPosts[index]['dislikes']}'),
                       ],
                     ),
                     Container(

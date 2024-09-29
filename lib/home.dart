@@ -36,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+
     loggedInUser = widget.user.displayName ?? 'Unknown User';
     _fetchPosts();
     _scrollController.addListener(_onScroll); // Attach scroll listener
@@ -71,66 +72,55 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       setState(() {
         _isLoadingMore = true;
+        if (startAfterKey == null) {
+          posts.clear(); // Clear existing posts when starting a new fetch
+        }
       });
 
       // Create the query
       Query query = _databaseRef.orderByKey().limitToFirst(10);
       if (startAfterKey != null) {
-        query =
-            _databaseRef.orderByKey().startAfter(startAfterKey).limitToFirst(
-                10);
+        query = _databaseRef.orderByKey().startAfter(startAfterKey).limitToFirst(10);
       }
 
       // Fetch the posts
       query.onValue.listen((event) {
         if (event.snapshot.value != null) {
-          final Map<dynamic, dynamic> data = event.snapshot.value as Map<
-              dynamic,
-              dynamic>;
+          final Map<dynamic, dynamic> data = event.snapshot.value as Map<dynamic, dynamic>;
           final List<Map<String, dynamic>> loadedPosts = [];
+          final Set<String> existingKeys = Set<String>.from(posts.map((post) => post['key'])); // Create a set of existing keys
 
           data.forEach((key, value) {
-            loadedPosts.add({
-              'companyName': value['companyName'] ?? 'Unknown Company',
-              'postedBy': value['postedBy'] ?? 'Anonymous',
-              'content': value['content'] ?? 'No Content',
-              'likes': value['likes'] ?? 0,
-              'dislikes': value['dislikes'] ?? 0,
-              'ratings': value['ratings'] ?? 0.0,
-              'ratedBy': List<String>.from(value['ratedBy'] ?? []),
-              'likedBy': List<String>.from(value['likedBy'] ?? []),
-              'dislikedBy': List<String>.from(value['dislikedBy'] ?? []),
-              'key': key,
-            });
+            // Only add the post if its key is not already in the existingKeys set
+            if (!existingKeys.contains(key)) {
+              loadedPosts.add({
+                'companyName': value['companyName'] ?? 'Unknown Company',
+                'postedBy': value['postedBy'] ?? 'Anonymous',
+                'content': value['content'] ?? 'No Content',
+                'likes': value['likes'] ?? 0,
+                'dislikes': value['dislikes'] ?? 0,
+                'ratings': value['ratings'] ?? 0.0,
+                'ratedBy': List<String>.from(value['ratedBy'] ?? []),
+                'likedBy': List<String>.from(value['likedBy'] ?? []),
+                'dislikedBy': List<String>.from(value['dislikedBy'] ?? []),
+                'key': key,
+              });
+            }
           });
 
           setState(() {
-            // Initialize a Set to track existing post keys
-            Set<String> existingKeys = <String>{};
-
-// Check for duplicate posts by comparing keys
-            loadedPosts.forEach((newPost) {
-              // Check if the key is already in the Set
-              if (existingKeys.add(newPost['key'])) {
-                posts.add(
-                    newPost); // Only add the post if it's not already in the Set
-              }
-            });
-
-// Assign filteredPosts to posts
+            posts.addAll(loadedPosts); // Add only non-duplicate posts
             filteredPosts = posts;
 
-
             if (loadedPosts.isNotEmpty) {
-              _lastFetchedKey =
-              loadedPosts.last['key']; // Save the last fetched post's key
+              _lastFetchedKey = loadedPosts.last['key']; // Save the last fetched post's key
             }
 
             _isLoadingMore = false;
           });
         }
       });
-    }catch (e) {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error fetching posts: $e')),
       );

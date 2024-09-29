@@ -17,32 +17,69 @@ class _PostScreenState extends State<PostScreen> {
   String _postContent = "";
   final int _maxChars = 1000;
   final DatabaseReference _databaseRef = FirebaseDatabase.instance.ref("posts");
+  final DatabaseReference _companyRef = FirebaseDatabase.instance.ref("companies");
+
+  List<String> _companySuggestions = [];
+  bool _isLoadingCompanies = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCompanies();
+  }
+
+  void _loadCompanies() async {
+    // Fetch existing companies from Firebase
+    final companiesSnapshot = await _companyRef.get();
+    if (companiesSnapshot.exists) {
+      final companies = companiesSnapshot.value as Map<dynamic, dynamic>;
+      setState(() {
+        _companySuggestions = companies.keys.map((e) => e.toString()).toList();
+        _isLoadingCompanies = false;
+      });
+    } else {
+      setState(() {
+        _companySuggestions = [];
+        _isLoadingCompanies = false;
+      });
+    }
+  }
 
   void _submitPost() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
+      // Check if company name is already in the Firebase "companies" node
+      final companyExists = _companySuggestions.contains(_companyName);
+
       // Create a new post entry
       final newPostRef = _databaseRef.push();
       try {
-      await newPostRef.set({
-        'companyName': _companyName,
-        'postedBy': widget.user.displayName,
-        'content': _postContent,
-        'likes': 0,
-        'likedUsers': [], // Initialize likedUsers as an empty list
-        'timestamp': DateTime.now().toIso8601String(),
-      });
+        await newPostRef.set({
+          'companyName': _companyName,
+          'postedBy': widget.user.displayName,
+          'content': _postContent,
+          'likes': 0,
+          'likedUsers': [],
+          'timestamp': DateTime.now().toIso8601String(),
+        });
 
-      // Show success Snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Post submitted successfully!'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+        // If the company does not exist, store it in the "companies" node
+        if (!companyExists) {
+          await _companyRef.child(_companyName).set({
+            'companyName': _companyName,
+          });
+        }
 
-      Navigator.pop(context); // Go back to the homepage after posting
+        // Show success Snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Post submitted successfully!'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        Navigator.pop(context); // Go back to the homepage after posting
       } catch (e) {
         // Show error Snackbar
         ScaffoldMessenger.of(context).showSnackBar(
@@ -61,24 +98,50 @@ class _PostScreenState extends State<PostScreen> {
       appBar: AppBar(title: const Text('Create Post')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Form(
+        child: _isLoadingCompanies
+            ? const Center(child: CircularProgressIndicator())
+            : Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Company Name',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Company name cannot be empty';
+              Autocomplete<String>(
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  if (textEditingValue.text.isEmpty) {
+                    return const Iterable<String>.empty();
                   }
-                  return null;
+                  return _companySuggestions.where((String option) {
+                    return option.toLowerCase().contains(
+                      textEditingValue.text.toLowerCase(),
+                    );
+                  });
                 },
-                onSaved: (value) {
-                  _companyName = value!;
+                onSelected: (String selection) {
+                  setState(() {
+                    _companyName = selection;
+                  });
+                },
+                fieldViewBuilder: (BuildContext context,
+                    TextEditingController textEditingController,
+                    FocusNode focusNode,
+                    VoidCallback onFieldSubmitted) {
+                  return TextFormField(
+                    controller: textEditingController,
+                    focusNode: focusNode,
+                    decoration: const InputDecoration(
+                      labelText: 'Company Name',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Company name cannot be empty';
+                      }
+                      return null;
+                    },
+                    onSaved: (value) {
+                      _companyName = value!;
+                    },
+                  );
                 },
               ),
               const SizedBox(height: 16),
